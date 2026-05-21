@@ -1,38 +1,65 @@
 import pandas as pd
 
-file = "Weekly_Oil_Bulletin_Prices_History_maticni_4web.xlsx"
 
-xls = pd.ExcelFile(file)
-print("Sheets:", xls.sheet_names)
+FILE_NAME = "Weekly_Oil_Bulletin_Prices_History_maticni_4web.xlsx"
 
-df = pd.read_excel(file, sheet_name="Prices with taxes", skiprows=[1])
 
-df = df.rename(columns={df.columns[0]: "Date"})
-df["Date"] = pd.to_datetime(df["Date"], format="%Y-%m-%d %H:%M:%S", errors="coerce")
-df = df.dropna(subset=["Date"]).copy()
+def clean_price_sheet(sheet_name, output_clean, output_fuels):
+    print(f"\nCleaning sheet: {sheet_name}")
 
-for col in df.columns[1:]:
-    df[col] = pd.to_numeric(df[col], errors="coerce")
+    df = pd.read_excel(FILE_NAME, sheet_name=sheet_name, skiprows=[1])
 
-df = df.reset_index(drop=True)
+    df = df.rename(columns={df.columns[0]: "Date"})
+    df["Date"] = pd.to_datetime(df["Date"], format="%Y-%m-%d %H:%M:%S", errors="coerce")
+    df = df.dropna(subset=["Date"]).copy()
 
-print(df.head())
-print(df.columns.tolist()[:15])
+    for col in df.columns[1:]:
+        df[col] = pd.to_numeric(df[col], errors="coerce")
 
-df.to_csv("prices_with_taxes_clean.csv", index=False)
-print("Cleaned file saved as prices_with_taxes_clean.csv")
+    df = df.reset_index(drop=True)
 
-selected_cols = ["Date"]
+    print("First rows of cleaned data:")
+    print(df.head())
+    print("\nFirst 15 column names:")
+    print(df.columns.tolist()[:15])
 
-for col in df.columns:
-    col_lower = col.lower()
-    if "euro95" in col_lower or "diesel" in col_lower:
-        selected_cols.append(col)
+    df.to_csv(output_clean, index=False)
+    print(f"Cleaned file saved as {output_clean}")
 
-fuel_df = df[selected_cols].copy()
+    selected_cols = ["Date"]
 
-print(fuel_df.head())
-print(fuel_df.columns.tolist()[:20])
+    for col in df.columns:
+        col_lower = col.lower()
+        if "euro95" in col_lower or "diesel" in col_lower:
+            selected_cols.append(col)
 
-fuel_df.to_csv("prices_with_taxes_fuels_only.csv", index=False)
-print("Filtered file saved as prices_with_taxes_fuels_only.csv")
+    fuel_df = df[selected_cols].copy()
+
+    print("\nFirst rows of fuels-only data:")
+    print(fuel_df.head())
+    print("\nFirst 20 fuel columns:")
+    print(fuel_df.columns.tolist()[:20])
+
+    fuel_df.to_csv(output_fuels, index=False)
+    print(f"Filtered file saved as {output_fuels}")
+
+
+def main():
+    xls = pd.ExcelFile(FILE_NAME)
+    print("Sheets:", xls.sheet_names)
+
+    clean_price_sheet(
+        sheet_name="Prices with taxes",
+        output_clean="prices_with_taxes_clean.csv",
+        output_fuels="prices_with_taxes_fuels_only.csv"
+    )
+
+    clean_price_sheet(
+        sheet_name="Prices wo taxes",
+        output_clean="prices_wo_taxes_clean.csv",
+        output_fuels="prices_wo_taxes_fuels_only.csv"
+    )
+
+
+if __name__ == "__main__":
+    main()

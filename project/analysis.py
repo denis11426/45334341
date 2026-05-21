@@ -51,7 +51,10 @@ def get_latest_ranking(df, fuel_type="euro95", tank_size=50):
     latest_df = df[df["Date"] == latest_date].copy()
 
     fuel_df = latest_df[latest_df["fuel_type"] == fuel_type].copy()
+    fuel_df = fuel_df.dropna(subset=["price_per_1000l"]).copy()
     fuel_df["tank_cost"] = fuel_df["price_per_1000l"] / 1000 * tank_size
     fuel_df = fuel_df.sort_values("tank_cost").reset_index(drop=True)
 
     return fuel_df, latest_date
+
+   
