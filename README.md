@@ -37,9 +37,9 @@ Following tables, statistics and figures are shown:
 
 This is our recommended procedure (it worked on our computers) of how to launch the app if you are trying to launch it for the first time ever:
 
-
-1. Open Anaconda Prompt.
-2. Run the following commands in this specific order, line by line (you only have to change the path to where this project's folder is on your computer):
+* Download the folder "project" from this repository, or clone the whole repository to your computer.
+* Open Anaconda Prompt.
+* Run the following commands in this specific order, line by line (you only have to change the path to where this project's folder is on your computer):
   * conda create -n fuel_app python=3.11 -y
   * conda activate fuel_app
   * cd C:\path\to\the\downloaded\repository\project
@@ -54,9 +54,9 @@ The app should open in an internet browser window and you are free to explore th
 
 If you are trying to launch the app and have previously already done the steps above, you can skip some of them. You would only need to do the following:
 
-1. Open Anaconda Prompt.
-2. Run the following commands in this specific order, line by line (you only have to change the path to where this project's folder is on your computer, also you can skip lines 3-6 if you already ran these lines this week, since there are no new data, so you would just download the same data again):
-
+* Make sure that you have the newest version of this project: download again the folder "project" or pull the changes to your local clone of the repository.
+* Open Anaconda Prompt.
+* Run the following commands in this specific order, line by line (you only have to change the path to where this project's folder is on your computer, also you can skip lines 3-6 if you already ran these lines this week, since there are no new data, so you would just download the same data again):
   * conda activate fuel_app
   * cd C:\path\to\the\downloaded\repository\project
   * python download.py
