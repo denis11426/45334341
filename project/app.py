@@ -4,14 +4,19 @@ import matplotlib.pyplot as plt
 
 from analysis import load_data, add_country_names, keep_eu_countries_only, get_latest_ranking
 from tax_analysis import load_merged_data
+from predictions import create_prediction_table
 
 
 st.set_page_config(page_title="EU Fuel Price Dashboard", layout="wide")
 
 st.title("EU Fuel Price Dashboard")
-st.write("Interactive dashboard for comparing fuel prices across EU countries")
+st.write("Interactive dashboard for comparing current and historic fuel prices across EU countries, with a very simple ARIMA based predictor of future price.")
 
 # Sidebar controls
+
+st.sidebar.subheader("General overview settings")
+
+
 fuel_type = st.sidebar.selectbox("Choose fuel type", ["euro95", "diesel"])
 tank_size = st.sidebar.slider("Choose tank size (liters)", 30, 80, 50)
 
@@ -27,6 +32,26 @@ selected_countries = st.sidebar.multiselect(
     ],
     default=default_countries
 )
+
+st.sidebar.subheader("Price prediction settings")
+
+prediction_country = st.sidebar.selectbox(
+    "Choose country for prediction",
+    options=[
+        "Austria", "Belgium", "Bulgaria", "Cyprus", "Czech Republic", "Germany",
+        "Denmark", "Estonia", "Spain", "Finland", "France", "Greece", "Croatia",
+        "Hungary", "Ireland", "Italy", "Lithuania", "Luxembourg", "Latvia",
+        "Malta", "Netherlands", "Poland", "Portugal", "Romania", "Sweden",
+        "Slovenia", "Slovakia"
+    ],
+    index=4
+)
+
+max_p = st.sidebar.slider("Maximum AR order p", 0, 5, 3)
+max_d = st.sidebar.slider("Maximum differencing order d", 0, 2, 2)
+max_q = st.sidebar.slider("Maximum MA order q", 0, 5, 3)
+
+number_of_models = (max_p + 1) * (max_d + 1) * (max_q + 1)
 
 # Load price data
 df = load_data()
@@ -113,3 +138,43 @@ if not merged_latest.empty:
             "country_name", "price_wo_tax", "price_with_tax", "tax_amount", "tax_share"
         ]].reset_index(drop=True)
     )
+    
+    
+# Predictions
+
+@st.cache_data(show_spinner=False)
+def cached_prediction_table(country, fuel_type, y, max_p, max_d, max_q):
+    return create_prediction_table(
+        country=prediction_country,
+        fuel_type=fuel_type,
+        y=y,
+        max_p=max_p,
+        max_d=max_d,
+        max_q=max_q
+    )
+
+st.subheader(
+    f"Prediction of the price of 1000 liters of {fuel_type} in the next period in {prediction_country}"
+)
+
+country_df = df[
+    (df["fuel_type"] == fuel_type) &
+    (df["country_name"] == prediction_country)
+].copy()
+
+country_df = country_df.sort_values("Date")
+
+y = country_df["price_per_1000l"].dropna()
+
+with st.spinner(f"Estimating {number_of_models} ARIMA models. This may take a moment..."):
+
+    prediction_table = cached_prediction_table(
+        country=prediction_country,
+        fuel_type=fuel_type,
+        y=y,
+        max_p=max_p,
+        max_d=max_d,
+        max_q=max_q
+    )
+
+st.dataframe(prediction_table, use_container_width=True)
