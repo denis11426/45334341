@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from analysis import load_data, add_country_names, keep_eu_countries_only, get_latest_ranking
 from tax_analysis import load_merged_data
 from predictions import create_prediction_table
+from map_visualization import show_fuel_price_map
 
 
 st.set_page_config(page_title="EU Fuel Price Dashboard", layout="wide")
@@ -51,6 +52,8 @@ max_p = st.sidebar.slider("Maximum AR order p", 0, 5, 3)
 max_d = st.sidebar.slider("Maximum differencing order d", 0, 2, 2)
 max_q = st.sidebar.slider("Maximum MA order q", 0, 5, 3)
 
+run_predictions = st.sidebar.button("Run prediction")
+
 number_of_models = (max_p + 1) * (max_d + 1) * (max_q + 1)
 
 # Load price data
@@ -60,10 +63,30 @@ df = keep_eu_countries_only(df)
 
 fuel_df, latest_date = get_latest_ranking(df, fuel_type=fuel_type, tank_size=tank_size)
 
-st.subheader(f"Top 10 cheapest countries for {fuel_type} on {latest_date.date()}")
-st.dataframe(
-    fuel_df[["country_name", "price_per_1000l", "tank_cost"]].head(10).reset_index(drop=True)
+
+st.subheader(f"Map of EU countries and their prices for {fuel_type} on {latest_date.date()}")
+show_fuel_price_map(
+    fuel_df=fuel_df,
+    fuel_type=fuel_type,
+    latest_date=latest_date
 )
+
+st.subheader(f"Top 10 cheapest countries for {fuel_type} on {latest_date.date()}")
+top10_table = fuel_df[["country_name", "price_per_1000l", "tank_cost"]].head(10).copy()
+
+top10_table[["price_per_1000l", "tank_cost"]] = top10_table[
+    ["price_per_1000l", "tank_cost"]
+].round(2)
+
+top10_table = top10_table.rename(columns={
+    "country_name": "Country",
+    "price_per_1000l": "Price per 1000 liters",
+    "tank_cost": f"Cost of {tank_size}L tank"
+})
+
+top10_table.index = top10_table.index + 1
+
+st.dataframe(top10_table)
 
 fig1, ax1 = plt.subplots(figsize=(10, 5))
 top10 = fuel_df.head(10)
@@ -121,8 +144,8 @@ if not merged_latest.empty:
     width = 0.4
 
     fig4, ax4 = plt.subplots(figsize=(10, 5))
-    ax4.bar([i - width/2 for i in x], merged_latest["price_wo_tax"], width=width, label="Without tax")
-    ax4.bar([i + width/2 for i in x], merged_latest["price_with_tax"], width=width, label="With tax")
+    ax4.bar([i - width / 2 for i in x], merged_latest["price_wo_tax"], width=width, label="Without tax")
+    ax4.bar([i + width / 2 for i in x], merged_latest["price_with_tax"], width=width, label="With tax")
 
     ax4.set_xticks(list(x))
     ax4.set_xticklabels(merged_latest["country_name"], rotation=45, ha="right")
@@ -133,11 +156,28 @@ if not merged_latest.empty:
     st.pyplot(fig4)
 
     st.subheader("Latest tax comparison table")
-    st.dataframe(
-        merged_latest[[
-            "country_name", "price_wo_tax", "price_with_tax", "tax_amount", "tax_share"
-        ]].reset_index(drop=True)
-    )
+
+    tax_table = merged_latest[[
+        "country_name", "price_wo_tax", "price_with_tax", "tax_amount", "tax_share"
+    ]].copy()
+
+    tax_table["tax_share"] = tax_table["tax_share"] * 100
+
+    tax_table[["price_wo_tax", "price_with_tax", "tax_amount", "tax_share"]] = tax_table[
+        ["price_wo_tax", "price_with_tax", "tax_amount", "tax_share"]
+    ].round(2)
+
+    tax_table = tax_table.rename(columns={
+        "country_name": "Country",
+        "price_wo_tax": "Price without tax",
+        "price_with_tax": "Price with tax",
+        "tax_amount": "Tax amount",
+        "tax_share": "Tax share (%)"
+    })
+
+    tax_table.index = tax_table.index + 1
+
+    st.dataframe(tax_table)
     
     
 # Predictions
@@ -145,13 +185,14 @@ if not merged_latest.empty:
 @st.cache_data(show_spinner=False)
 def cached_prediction_table(country, fuel_type, y, max_p, max_d, max_q):
     return create_prediction_table(
-        country=prediction_country,
+        country=country,
         fuel_type=fuel_type,
         y=y,
         max_p=max_p,
         max_d=max_d,
         max_q=max_q
     )
+
 
 st.subheader(
     f"Prediction of the price of 1000 liters of {fuel_type} in the next period in {prediction_country}"
@@ -166,15 +207,18 @@ country_df = country_df.sort_values("Date")
 
 y = country_df["price_per_1000l"].dropna()
 
-with st.spinner(f"Estimating {number_of_models} ARIMA models. This may take a moment..."):
+if run_predictions:
+    with st.spinner(f"Estimating {number_of_models} ARIMA models. This may take a moment..."):
 
-    prediction_table = cached_prediction_table(
-        country=prediction_country,
-        fuel_type=fuel_type,
-        y=y,
-        max_p=max_p,
-        max_d=max_d,
-        max_q=max_q
-    )
+        prediction_table = cached_prediction_table(
+            country=prediction_country,
+            fuel_type=fuel_type,
+            y=y,
+            max_p=max_p,
+            max_d=max_d,
+            max_q=max_q
+        )
 
-st.dataframe(prediction_table, use_container_width=True)
+    st.dataframe(prediction_table, use_container_width=True, hide_index=True)
+else:
+    st.info("Choose ARIMA settings in the sidebar and click Run prediction.")
