@@ -43,7 +43,7 @@ This is our recommended procedure (it worked on our computers) of how to launch 
   * conda create -n fuel_app python=3.11 -y
   * conda activate fuel_app
   * cd C:\path\to\the\downloaded\repository\project
-  * python -m pip install pandas matplotlib requests openpyxl streamlit statsmodels
+  * python -m pip install -r requirements.txt
   * python run_project.py
 
 The app should open in an internet browser window and you are free to explore the data.
