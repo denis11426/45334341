@@ -2,8 +2,6 @@
 
 This project was created by Martin Beránek and Denis Pščolka for the course Data Processing in Python (JEM207) in the summer semester of the academic year 2025/2026.
 
-THIS IS STILL A **WORK IN PROGRESS**!
-
 
 ## What is this project about
 
